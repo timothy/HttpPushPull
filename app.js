@@ -1,3 +1,13 @@
+/**
+ * Author: Timothy
+ * Big time NOTE!!! Most browsers security will stop this from working...
+ * I am only making this as a proof of concept. I had to disable my browser security
+ * for this to work on my machine... This is do to cross site scripting... i.e. asking for
+ * json data from a different site other than the origin URL.
+ * @type {angular.Module}
+ */
+
+
 var app = angular.module('myApp', []);
 
 app.service('serviceOne', function ($http) {
@@ -45,7 +55,8 @@ app.service('Keeper', function ($http, $q) {
         configData.prod.secondURL = 'http://getbible.net/json?passage=Jn3:18';
 
         //test long path to URL
-        configData.prod.long = {}; configData.prod.long.path = {};
+        configData.prod.long = {};
+        configData.prod.long.path = {};
         configData.prod.long.path.firstURL = 'http://getbible.net/json?passage=Jn3:16';
 
         if (path) {//return URL if path is provided
@@ -53,9 +64,8 @@ app.service('Keeper', function ($http, $q) {
             path = sub ? path.split(".") : path;
 
             if (sub) {
-                var URL = "";
-                URL = config[Env][path[0]];
-                for (var i = 0; i < path.length; i++) {
+                var URL = config[Env][path[0]];
+                for (var i = 1; i < path.length; i++) {
                     URL = URL[path[i]];
                 }
                 return $q.when(URL);
@@ -76,14 +86,22 @@ app.service('Keeper', function ($http, $q) {
 
     return service;
 
-    function pushHttp(key, path) {
-        //httpKeeper
+    /**
+     * A service can update the data for any call back based on the key.
+     * @param env the environment for the config the URLs
+     * @param key the identifier for the data call
+     * @param path a string that contains the config path for the data URL
+     */
+    function pushHttp(env, key, path) {
+        getConfigURLData(env, path).then(function (data) {
+            httpKeeper[key].cb(data);
+        });
     }
 
     /**
      * initial pull from service or controller
-     * @param key - the identifier for your data call
-     * @param path - a string that contains the config path of the data URL
+     * @param key - the identifier for the data call
+     * @param path - a string that contains the config path for the data URL
      * @param cb - the call back that will be called each time data arrives
      */
     function getData(key, path, cb) {
@@ -92,14 +110,26 @@ app.service('Keeper', function ($http, $q) {
         httpKeeper[key].path = path;
         httpKeeper[key].cb = cb;
 
-        getConfig(false, path).then(function (URL) {
-            $http.get(URL).then(function (data) {
+        getConfigURLData(false, path).then(function (data) {cb(data);});
+    }
+
+    /**
+     * This will retrieve the json data for the REST URL in the config file that the path points to.
+     * @param env the environment for the config the URLs
+     * @param path a string that contains the config path for the data URL
+     * @returns {Object} json data for the REST URL in the config file that the path points to
+     */
+    function getConfigURLData(env, path) {
+        return getConfig(env, path).then(function (URL) {
+            return $http.get(URL).then(function (data) {
                 data.data = JSON.parse(data.data.substring(1, data.data.length - 2));// this is only for the test URL... Any URL that gives proper json data does not need this...
 
-                cb(data);
+                return data;
             });
         });
     }
+
+
 });
 
 app.controller('myCtrl', function ($scope, serviceOne) {

@@ -1,0 +1,14 @@
+{
+    "dev":{
+        "firstURL":"http://getbible.net/json?passage=Jn3:13",
+        "secondURL":"http://getbible.net/json?passage=Jn3:14"
+        },
+    "test":{
+        "firstURL":"http://getbible.net/json?passage=Jn3:15",
+        "secondURL":"http://getbible.net/json?passage=Jn3:16"
+        },
+    "prod":{
+        "firstURL":"http://getbible.net/json?passage=Jn3:17",
+        "secondURL":"http://getbible.net/json?passage=Jn3:18"
+        }
+}

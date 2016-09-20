@@ -4,6 +4,10 @@
  * I am only making this as a proof of concept. I had to disable my browser security
  * for this to work on my machine... This is do to cross site scripting... i.e. asking for
  * json data from a different site other than the origin URL.
+ *
+ * The idea behind this: To be used in a mobile app: When the mobile apps API URL changes
+ * or when a developer switches from dev, prod, or test URLs the new data will be displayed
+ * without any need to refresh the app, clear the memory/cache or reinstall the app with new API URLs.
  * @type {angular.Module}
  */
 
@@ -30,8 +34,7 @@ app.service('Keeper', function ($http, $q) {
 
     //to simplify the solution config -- this is a quick mimic of getting config URLs from the server
 
-
-    var Env = 'dev';//dev, test, prod
+    var Env = 'prod';//dev, test, prod
     var configData = {};
     configData.dev = {};
     configData.test = {};
@@ -60,17 +63,19 @@ app.service('Keeper', function ($http, $q) {
         configData.prod.long.path.firstURL = 'http://getbible.net/json?passage=Jn3:16';
 
         if (path) {//return URL if path is provided
+            console.log(path);
             var sub = path.includes(".");
             path = sub ? path.split(".") : path;
 
+            console.log(path);
             if (sub) {
-                var URL = config[Env][path[0]];
+                var URL = configData[Env][path[0]];
                 for (var i = 1; i < path.length; i++) {
                     URL = URL[path[i]];
                 }
                 return $q.when(URL);
             } else {
-                return $q.when(config[Env][path]);
+                return $q.when(configData[Env][path]);
             }
         }
 
@@ -83,6 +88,7 @@ app.service('Keeper', function ($http, $q) {
     var httpKeeper = {};
     var service = {};
     service.myHttp = getData;
+    service.pushHttp = pushHttp;
 
     return service;
 
@@ -99,7 +105,7 @@ app.service('Keeper', function ($http, $q) {
     }
 
     /**
-     * initial pull from service or controller
+     * Initial pull from service or controller
      * @param key - the identifier for the data call
      * @param path - a string that contains the config path for the data URL
      * @param cb - the call back that will be called each time data arrives
@@ -110,7 +116,10 @@ app.service('Keeper', function ($http, $q) {
         httpKeeper[key].path = path;
         httpKeeper[key].cb = cb;
 
-        getConfigURLData(false, path).then(function (data) {cb(data);});
+        getConfigURLData(false, path).then(function (data) {
+            cb(data);
+
+        });
     }
 
     /**
@@ -128,18 +137,34 @@ app.service('Keeper', function ($http, $q) {
             });
         });
     }
+});
 
+///////////////////////////////////THEORY TEST BELOW////////////////////////////////////////////
+
+
+app.service('changer', function (Keeper, $timeout) {
+
+    var service = {};
+    service.mimicChange = mimicChange;
+
+    return service;
+
+    function mimicChange() {
+        $timeout(function() {
+            Keeper.pushHttp('dev' ,"testOne", "firstURL");//should get Jn3:13
+            console.log('update with timeout fired')
+        }, 4000);
+    }
 
 });
 
-app.controller('myCtrl', function ($scope, serviceOne) {
+app.controller('myCtrl', function ($scope, Keeper, changer) {
     $scope.myHeader = "Hello World!";
 
-    serviceOne.getData("http://getbible.net/json?passage=Jn3:16", "controller").then(function (data) {
-        data.data = JSON.parse(data.data.substring(1, data.data.length - 2));
-        $scope.serviceNum = data.wheMadeReq;
-        $scope.response = data.data;
+    changer.mimicChange();
 
+    Keeper.myHttp("testOne", "long.path.firstURL", function (data) {//should get Jn3:16
+        $scope.response = data.data;
 
         console.log(data.data);
     })

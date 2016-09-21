@@ -14,22 +14,6 @@
 
 var app = angular.module('myApp', []);
 
-app.service('serviceOne', function ($http) {
-
-    var service = {};
-    service.getData = getData;
-
-    return service;
-
-    function getData(URL, whoMadeReq) {
-
-        return $http.get(URL).then(function (data) {
-            data.sevice = whoMadeReq;
-            return data;
-        });
-    }
-});
-
 app.service('Keeper', function ($http, $q) {
 
     //to simplify the solution config -- this is a quick mimic of getting config URLs from the server
@@ -89,6 +73,7 @@ app.service('Keeper', function ($http, $q) {
     var service = {};
     service.myHttp = getData;
     service.pushHttp = pushHttp;
+    service.unsubscribe = unsubscribe;
 
     return service;
 
@@ -102,6 +87,10 @@ app.service('Keeper', function ($http, $q) {
         getConfigURLData(env, path).then(function (data) {
             httpKeeper[key].cb(data);
         });
+    }
+
+    function unsubscribe(key) {
+       delete httpKeeper[key];
     }
 
     /**
@@ -150,8 +139,8 @@ app.service('changer', function (Keeper, $timeout) {
     return service;
 
     function mimicChange() {
-        $timeout(function() {
-            Keeper.pushHttp('dev' ,"testOne", "firstURL");//should get Jn3:13
+        $timeout(function () {
+            Keeper.pushHttp('dev', "testOne", "firstURL");//should get Jn3:13
             console.log('update with timeout fired')
         }, 4000);
     }
@@ -163,7 +152,9 @@ app.controller('myCtrl', function ($scope, Keeper, changer) {
 
     changer.mimicChange();
 
-    Keeper.myHttp("testOne", "long.path.firstURL", function (data) {//should get Jn3:16
+    //should get Jn3:16 and then when changer.mimicChange is fired should auto update with new data i.e. Jn3:13
+    //changer.mimicChange should be able to change the below even if fired from an outside source as long as the controller is active
+    Keeper.myHttp("testOne", "long.path.firstURL", function (data) {
         $scope.response = data.data;
 
         console.log(data.data);

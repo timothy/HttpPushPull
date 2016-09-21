@@ -90,7 +90,9 @@ app.service('Keeper', function ($http, $q) {
     }
 
     function unsubscribe(key) {
-       delete httpKeeper[key];
+        if (httpKeeper.hasOwnProperty(key)) {
+            delete httpKeeper[key];
+        }
     }
 
     /**
@@ -152,11 +154,14 @@ app.controller('myCtrl', function ($scope, Keeper, changer) {
 
     changer.mimicChange();
 
+    $scope.$on("$destroy", function () {
+        Keeper.unsubscribe("testOne");
+    });
+
     //should get Jn3:16 and then when changer.mimicChange is fired should auto update with new data i.e. Jn3:13
     //changer.mimicChange should be able to change the below even if fired from an outside source as long as the controller is active
     Keeper.myHttp("testOne", "long.path.firstURL", function (data) {
         $scope.response = data.data;
-
         console.log(data.data);
     })
 });
